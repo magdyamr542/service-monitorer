@@ -1,41 +1,22 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
-)
 
-type SupportedInformer string
-
-const (
-	Slack SupportedInformer = "slack"
-)
-
-var (
-	SupportedInformers = []SupportedInformer{Slack}
+	"github.com/magdyamr542/service-monitorer/informer"
 )
 
 type Config struct {
-	Name      string     `yaml:"name"`
-	Informers []Informer `yaml:"informers"`
-	Backends  []Backend  `yaml:"backends"`
-}
-
-type SlackConfig struct {
-	WebhookURL string `yaml:"webhookUrl"`
-}
-
-type Informer struct {
-	Name string `yaml:"name"`
-	Type string `yaml:"type"`
-	// Configures the corresponding informer based on its type.
-	Config map[string]interface{} `yaml:"config"`
+	Name      string            `yaml:"name"`
+	Informers []informer.Config `yaml:"informers"`
+	Backends  []Backend         `yaml:"backends"`
 }
 
 type Backend struct {
-	Name     string          `yaml:"name"`
-	URL      string          `yaml:"url"`
-	Response BackendResponse `yaml:"response"`
+	Name        string          `yaml:"name"`
+	URL         string          `yaml:"url"`
+	CallEachSec int             `yaml:"callEachSec"`
+	Response    BackendResponse `yaml:"response"`
 }
 
 type BackendResponse struct {
@@ -70,42 +51,14 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func (i Informer) Validate() error {
-	if i.Name == "" {
-		return fmt.Errorf("name is required")
-	}
-	if i.Type == "" {
-		return fmt.Errorf("type is required")
-	}
-
-	validType := false
-	for _, supported := range SupportedInformers {
-		if SupportedInformer(i.Type) == supported {
-			validType = true
-			break
+func (c Config) GetInformer(name string) (informer.Config, error) {
+	for _, inf := range c.Informers {
+		if inf.Name == name {
+			return inf, nil
 		}
 	}
-	if !validType {
-		return fmt.Errorf("informer with type %s is not valid. supported types are %s", i.Type, SupportedInformers)
-	}
 
-	switch SupportedInformer(i.Type) {
-	case Slack:
-		jsonbody, err := json.Marshal(i.Config)
-		if err != nil {
-			return fmt.Errorf("slack config to json: %v", err)
-		}
-		slackConfig := SlackConfig{}
-		if err := json.Unmarshal(jsonbody, &slackConfig); err != nil {
-			return fmt.Errorf("slack config %+v invalid: %v", i.Config, err)
-		}
-		if err := slackConfig.Validate(); err != nil {
-			return fmt.Errorf("slack config invalid: %v", err)
-		}
-
-	}
-
-	return nil
+	return informer.Config{}, fmt.Errorf("no such informer found")
 }
 
 func (b Backend) Validate(availableInformers []string) error {
@@ -115,6 +68,10 @@ func (b Backend) Validate(availableInformers []string) error {
 
 	if b.URL == "" {
 		return fmt.Errorf("url is required")
+	}
+
+	if b.CallEachSec <= 0 {
+		return fmt.Errorf("callEachSec can't be <= 0")
 	}
 
 	if err := b.Response.Validate(availableInformers); err != nil {
@@ -143,12 +100,5 @@ func (b BackendResponse) Validate(availableInformers []string) error {
 		}
 	}
 
-	return nil
-}
-
-func (s SlackConfig) Validate() error {
-	if s.WebhookURL == "" {
-		return fmt.Errorf("webhookUrl is required")
-	}
 	return nil
 }

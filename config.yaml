@@ -7,8 +7,9 @@ informers:
        webhookUrl: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 
 backends:
-  - name: 
-    url: https://invoice-manager.xtk-dev.de/health
+  - name: invoice-manager-dev
+    url: http://localhost:1234/healthy
+    callEachSec: 3
     response: 
       expectCode: 200
       onFail:
@@ -16,3 +17,12 @@ backends:
           - informer: slack-iceberg-invoice-manager-errors
             template: "Error service invoice-manager component '{{name}}'"
 
+  - name: invoice-manager-stage
+    url: http://localhost:1235/healthy
+    callEachSec: 20
+    response: 
+      expectCode: 200
+      onFail:
+        inform:
+          - informer: slack-iceberg-invoice-manager-errors
+            template: "Error service invoice-manager component '{{name}}'"
