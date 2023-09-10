@@ -24,7 +24,6 @@ type BackendResponse struct {
 	OnFail     struct {
 		Inform []struct {
 			Informer string `yaml:"informer"`
-			Template string `yaml:"template"`
 		} `yaml:"inform"`
 	} `yaml:"onFail"`
 }
@@ -83,9 +82,6 @@ func (b Backend) Validate(availableInformers []string) error {
 
 func (b BackendResponse) Validate(availableInformers []string) error {
 	for _, inform := range b.OnFail.Inform {
-		if inform.Template == "" {
-			return fmt.Errorf("template is required")
-		}
 		// Check the informer exists
 		exists := false
 		for _, informer := range availableInformers {

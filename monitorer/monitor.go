@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -71,8 +69,7 @@ func (m *monitorer) monitorBackend(ctx context.Context, backend config.Backend) 
 				continue
 			}
 
-			message := m.buildInformerMessage(backend, result)
-			if err := m.informForBackend(ctx, backend, message); err != nil {
+			if err := m.informForBackend(ctx, backend, result); err != nil {
 				m.logger.With("err", err).Errorf("Error informing backend %s", backend.Name)
 			}
 
@@ -82,23 +79,7 @@ func (m *monitorer) monitorBackend(ctx context.Context, backend config.Backend) 
 	}
 }
 
-func (m *monitorer) buildInformerMessage(backend config.Backend, result pingResult) string {
-	var strb strings.Builder
-	strb.WriteString(fmt.Sprintf("Backend: %s\n", backend.Name))
-	strb.WriteString(fmt.Sprintf("StatusCode: %d\n", result.statusCode))
-	strb.WriteString("Errors:\n")
-	tab := "	"
-	for _, failure := range result.failures {
-		fatal := ""
-		if failure.fatal {
-			fatal = "(FATAL)"
-		}
-		strb.WriteString(fmt.Sprintf("%s - %s  %q %s\n", tab, failure.name, failure.reason, fatal))
-	}
-	return strb.String()
-}
-
-func (m *monitorer) informForBackend(ctx context.Context, backend config.Backend, message string) error {
+func (m *monitorer) informForBackend(ctx context.Context, backend config.Backend, pingResult informer.PingResult) error {
 	errs := make([]error, 0)
 	for _, i := range backend.Response.OnFail.Inform {
 		informerConfig, err := m.config.GetInformer(i.Informer)
@@ -108,37 +89,13 @@ func (m *monitorer) informForBackend(ctx context.Context, backend config.Backend
 
 		informer := m.informers[informerConfig.Type]
 
-		if err := informer.Inform(ctx, informerConfig, message); err != nil {
+		if err := informer.Inform(ctx, informerConfig, backend.Name, pingResult); err != nil {
 			m.logger.With("err", err).
 				Warnf("Error informing %s. Will continue to inform any other possible informers...", informerConfig.Name)
 			errs = append(errs, err)
 		}
 	}
 	return errors.Join(errs...)
-}
-
-type pingResult struct {
-	statusCode int
-	failures   []serviceFailure
-}
-
-// E.g response:
-//
-//	   {
-//		  "name": "pdfgen",
-//		  "status": "failed",
-//		  "error": "Status check failed: the returned status code 401 differ from the configured one: 200",
-//		  "fatal": true
-//		},
-//
-// name will be 'pdfgen'
-// reason will be 'pdfgen'
-type serviceFailure struct {
-	// name of the service component that failed
-	name string
-	// Status check failed: the returned status code 401 differ from the configured one: 200
-	reason string
-	fatal  bool
 }
 
 type componentStatus string
@@ -160,32 +117,33 @@ type backendResponse struct {
 	} `json:"details"`
 }
 
-func (m *monitorer) pingBackend(ctx context.Context, backend config.Backend) (pingResult, error) {
+func (m *monitorer) pingBackend(ctx context.Context, backend config.Backend) (informer.PingResult, error) {
 	m.logger.Debugf("Pinging backend %s on %s", backend.Name, backend.URL)
 	response, code, err := m.httpClient.Get(backend.URL, nil)
 	if err != nil {
-		return pingResult{}, err
+		return informer.PingResult{}, err
 	}
 
 	var backendResponse backendResponse
 	if err := json.Unmarshal(response, &backendResponse); err != nil {
-		return pingResult{}, err
+		return informer.PingResult{}, err
 	}
 
-	failures := make([]serviceFailure, 0)
+	failures := make([]informer.ServiceFailure, 0)
 	for _, componentStatus := range backendResponse.Details {
 		if componentStatus.Status == ok {
 			continue
 		}
-		failures = append(failures, serviceFailure{
-			name:   componentStatus.Name,
-			reason: componentStatus.Error,
-			fatal:  componentStatus.Fatal,
+		failures = append(failures, informer.ServiceFailure{
+			Name:   componentStatus.Name,
+			Reason: componentStatus.Error,
+			Fatal:  componentStatus.Fatal,
 		})
 	}
 
-	return pingResult{
-		statusCode: code,
-		failures:   failures,
+	return informer.PingResult{
+		StatusCode: code,
+		Failures:   failures,
+		Timestamp:  backendResponse.Timestamp,
 	}, nil
 }

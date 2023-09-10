@@ -57,7 +57,7 @@ func main() {
 
 	}
 
-	resp := response{Status: "ok", Timestamp: time.Now().String(), Details: details}
+	resp := response{Status: "ok", Timestamp: time.Now().Format("2006-01-02 15:04:05"), Details: details}
 
 	http.HandleFunc("/healthy", func(w http.ResponseWriter, r *http.Request) {
 		bts, err := json.Marshal(resp)

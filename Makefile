@@ -7,3 +7,7 @@ build:
 run: build
 	./service-monitorer
 
+backendMock: 
+	go run ./cmd/service/main.go -failedComponents db,sfirm -okComponents tripica,mako -address localhost:1234
+
+
