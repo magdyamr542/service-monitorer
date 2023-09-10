@@ -56,6 +56,9 @@ func (m *monitorer) Monitor(ctx context.Context) error {
 }
 
 func (m *monitorer) monitorBackend(ctx context.Context, backend config.Backend) error {
+	m.logger.With("backendUrl", backend.URL).
+		Debugf("Will ping backend %q each %d seconds", backend.Name, backend.CallEachSec)
+
 	doneCh := ctx.Done()
 	ticker := time.NewTicker(time.Duration(backend.CallEachSec) * time.Second)
 	defer ticker.Stop()

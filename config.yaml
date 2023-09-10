@@ -1,28 +1,17 @@
-name: invoice-manager 
+name: invoice-manager
 
 informers:
-  - name: slack-iceberg-invoice-manager-errors
+  - name: slack-service-monitoring-errors
     type: slack
     config:
-       webhookUrl: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+      webhookUrl: https://hooks.slack.com/services/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
 
 backends:
   - name: invoice-manager-dev
     url: http://localhost:1234/healthy
-    callEachSec: 3
-    response: 
+    callEachSec: 10
+    response:
       expectCode: 200
       onFail:
         inform:
-          - informer: slack-iceberg-invoice-manager-errors
-            template: "Error service invoice-manager component '{{name}}'"
-
-  - name: invoice-manager-stage
-    url: http://localhost:1235/healthy
-    callEachSec: 20
-    response: 
-      expectCode: 200
-      onFail:
-        inform:
-          - informer: slack-iceberg-invoice-manager-errors
-            template: "Error service invoice-manager component '{{name}}'"
+          - informer: slack-service-monitoring-errors

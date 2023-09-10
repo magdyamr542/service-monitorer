@@ -70,8 +70,9 @@ func main() {
 		cancel()
 	}()
 
+	httpClient := http.NewClient()
 	informers := map[informer.SupportedInformer]informer.Informer{
-		informer.Slack: informer.NewSlack(logger),
+		informer.Slack: informer.NewSlack(logger, httpClient),
 	}
 	for _, key := range informer.SupportedInformers {
 		if _, ok := informers[key]; !ok {
@@ -80,7 +81,7 @@ func main() {
 	}
 
 	// Start monitoring...
-	monitorer := monitorer.NewMonitorer(c, http.NewClient(), informers, logger)
+	monitorer := monitorer.NewMonitorer(c, httpClient, informers, logger)
 	if err := monitorer.Monitor(ctx); err != nil {
 		log.Fatalf("Monitorer: %v", err)
 	}

@@ -15,17 +15,6 @@ var (
 	SupportedInformers = []SupportedInformer{Slack}
 )
 
-type SlackConfig struct {
-	WebhookURL string `yaml:"webhookUrl"`
-}
-
-func (s SlackConfig) Validate() error {
-	if s.WebhookURL == "" {
-		return fmt.Errorf("webhookUrl is required")
-	}
-	return nil
-}
-
 type Config struct {
 	Name string            `yaml:"name"`
 	Type SupportedInformer `yaml:"type"`
