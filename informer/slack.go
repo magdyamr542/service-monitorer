@@ -62,7 +62,7 @@ func (s slack) Inform(ctx context.Context, config Config, backend string, pingRe
 	if err != nil {
 		return err
 	}
-	response, statusCode, err := s.httpClient.Post(url, map[string]string{"Content-Type": "application/json"}, bytes.NewReader(requestBytes))
+	response, statusCode, err := s.httpClient.Post(url, map[string]string{"Content-Type": "application/json"}, bytes.NewReader(requestBytes), nil)
 	if err != nil {
 		return err
 	}

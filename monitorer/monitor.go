@@ -119,7 +119,12 @@ type backendResponse struct {
 
 func (m *monitorer) pingBackend(ctx context.Context, backend config.Backend) (informer.PingResult, error) {
 	m.logger.Debugf("Pinging backend %s on %s", backend.Name, backend.URL)
-	response, code, err := m.httpClient.Get(backend.URL, nil)
+
+	var auth *http.BasicAuth
+	if backend.Auth != nil {
+		auth = &http.BasicAuth{Username: backend.Auth.Username, Password: backend.Auth.Password}
+	}
+	response, code, err := m.httpClient.Get(backend.URL, nil, auth)
 	if err != nil {
 		return informer.PingResult{}, err
 	}

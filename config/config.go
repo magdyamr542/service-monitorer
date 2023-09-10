@@ -16,7 +16,13 @@ type Backend struct {
 	Name        string          `yaml:"name"`
 	URL         string          `yaml:"url"`
 	CallEachSec int             `yaml:"callEachSec"`
+	Auth        *BackendAuth    `yaml:"auth"`
 	Response    BackendResponse `yaml:"response"`
+}
+
+type BackendAuth struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type BackendResponse struct {
@@ -73,10 +79,27 @@ func (b Backend) Validate(availableInformers []string) error {
 		return fmt.Errorf("callEachSec can't be <= 0")
 	}
 
+	if b.Auth != nil {
+		if err := b.Auth.Validate(); err != nil {
+			return fmt.Errorf("backend auth invalid: %v", err)
+		}
+	}
+
 	if err := b.Response.Validate(availableInformers); err != nil {
 		return fmt.Errorf("backend response invalid: %v", err)
 	}
 
+	return nil
+}
+
+func (b BackendAuth) Validate() error {
+	if b.Username == "" {
+		return fmt.Errorf("username is required")
+	}
+
+	if b.Password == "" {
+		return fmt.Errorf("password is required")
+	}
 	return nil
 }
 

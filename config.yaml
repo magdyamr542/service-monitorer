@@ -9,9 +9,22 @@ informers:
 backends:
   - name: invoice-manager-dev
     url: http://localhost:1234/healthy
-    callEachSec: 10
+    callEachSec: 5
     response:
       expectCode: 200
       onFail:
         inform:
           - informer: slack-service-monitoring-errors
+
+  # Using basic auth
+  # - name: invoice-manager-dev
+  #   url: http://localhost:1234/healthy
+  #   auth:
+  #     username: "user"
+  #     password: "password"
+  #   callEachSec: 5
+  #   response:
+  #     expectCode: 200
+  #     onFail:
+  #       inform:
+  #         - informer: slack-service-monitoring-errors
