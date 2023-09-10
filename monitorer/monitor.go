@@ -83,12 +83,14 @@ func (m *monitorer) buildInformerMessage(backend config.Backend, result pingResu
 	var strb strings.Builder
 	strb.WriteString(fmt.Sprintf("Backend: %s\n", backend.Name))
 	strb.WriteString(fmt.Sprintf("StatusCode: %d\n", result.statusCode))
+	strb.WriteString("Errors:\n")
+	tab := "	"
 	for _, failure := range result.failures {
-		prefix := ""
+		fatal := ""
 		if failure.fatal {
-			prefix = "FATAL"
+			fatal = "(FATAL)"
 		}
-		strb.WriteString(fmt.Sprintf("%s (%s) %q\n", prefix, failure.name, failure.reason))
+		strb.WriteString(fmt.Sprintf("%s - %s  %q %s\n", tab, failure.name, failure.reason, fatal))
 	}
 	return strb.String()
 }
@@ -156,7 +158,7 @@ type backendResponse struct {
 }
 
 func (m *monitorer) pingBackend(ctx context.Context, backend config.Backend) (pingResult, error) {
-	m.logger.Debugf("Pinging backend %s - %s", backend.Name, backend.URL)
+	m.logger.Debugf("Pinging backend %s on %s", backend.Name, backend.URL)
 	response, code, err := m.httpClient.Get(backend.URL, nil)
 	if err != nil {
 		return pingResult{}, err

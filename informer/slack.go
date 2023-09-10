@@ -11,12 +11,12 @@ type slack struct {
 }
 
 func NewSlack(logger *log.Logger) Informer {
-	l := logger.With("informer", "slack")
+	l := logger.With("informerType", "slack")
 	return slack{logger: l}
 }
 
 func (s slack) Inform(ctx context.Context, config Config, message string) error {
-	s.logger.With("name", config.Name).
-		Debugf("%s", message)
+	s.logger.With("informer", config.Name).
+		Debugf("Informer message to deliver:\n%s", message)
 	return nil
 }
