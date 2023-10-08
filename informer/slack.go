@@ -46,9 +46,6 @@ func (s slack) Inform(ctx context.Context, config Config, backend string, pingRe
 		return fmt.Errorf("can't execute go template for backend %s: %v", backend, err)
 	}
 
-	s.logger.With("informer", config.Name).With("slackUrl", url).
-		Debugf("Informer message to deliver:\n%q\n", buf.String())
-
 	response, statusCode, err := s.httpClient.Post(url, map[string]string{"Content-Type": "application/json"}, &buf, nil)
 	if err != nil {
 		return err

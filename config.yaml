@@ -27,28 +27,29 @@ backends:
             # The template is provided with the struct PingResult.
             #
             # type PingResult struct {
-            #     Backend    string
-            #     StatusCode int
-            #     Timestamp  string
-            #     Failures   []ServiceFailure
+            #   Backend    string
+            #   Status     string
+            #   StatusCode int
+            #   Timestamp  string
+            #   Failures   []ServiceFailure
             # }
             #
             # type ServiceFailure struct {
-            #   // Name of the service that failed. e.g 'invoice-manager'.
             #   Name string
-            #   Reason string
-            #   Fatal  bool
+            #   Status string
+            #   Error string
+            #   Fatal bool
             # }
             #
             template: |
               {
-                  "text": "Ping backend error. {{.Backend}}",
+                  "text": "Error with {{.Backend}}",
                   "blocks": [
                     {
                       "type": "section",
                       "text": {
                         "type": "mrkdwn",
-                        "text": "Error with *{{.Backend}}*. (Time *{{.Timestamp}}*) (Status *{{.StatusCode}}*)"
+                        "text": "Error with *{{.Backend}}*. (Time *{{.Timestamp}}*) (StatusCode *{{.StatusCode}}*) (Status *{{.Status}}*)"
                       }
                     },
                     {{range .Failures}}
@@ -56,7 +57,7 @@ backends:
                       "type": "section",
                       "text": {
                         "type": "mrkdwn",
-                        "text": "*{{ .Name }}*: \"{{ .Reason }}\" {{if .Fatal}}FATAL{{end}}"
+                        "text": "*{{ .Name }}* ({{.Status}}): \"{{ .Error }}\" {{if .Fatal}}FATAL{{end}}"
                       }
                     },
                     {{end}}

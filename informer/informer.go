@@ -7,6 +7,7 @@ import (
 
 type PingResult struct {
 	Backend    string
+	Status     string
 	StatusCode int
 	Timestamp  string
 	Failures   []ServiceFailure
@@ -24,11 +25,14 @@ type PingResult struct {
 // name will be 'pdfgen'
 // reason will be 'pdfgen'
 type ServiceFailure struct {
-	// name of the service component that failed
+	// Name of the component that failed.
 	Name string
-	// Status check failed: the returned status code 401 differ from the configured one: 200
-	Reason string
-	Fatal  bool
+	// ok or failed.
+	Status string
+	// The error that led to failure.
+	Error string
+	// Whether the error is fatal.
+	Fatal bool
 }
 
 type Informer interface {

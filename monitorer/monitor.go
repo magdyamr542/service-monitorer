@@ -153,13 +153,15 @@ func (m *monitorer) pingBackend(ctx context.Context, backend config.Backend) (in
 		}
 		failures = append(failures, informer.ServiceFailure{
 			Name:   componentStatus.Name,
-			Reason: componentStatus.Error,
+			Status: string(componentStatus.Status),
+			Error:  componentStatus.Error,
 			Fatal:  componentStatus.Fatal,
 		})
 	}
 
 	return informer.PingResult{
 		Backend:    backend.Name,
+		Status:     backendResponse.Status,
 		StatusCode: code,
 		Failures:   failures,
 		Timestamp:  backendResponse.Timestamp,
