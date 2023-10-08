@@ -2,9 +2,11 @@ package informer
 
 import (
 	"context"
+	"text/template"
 )
 
 type PingResult struct {
+	Backend    string
 	StatusCode int
 	Timestamp  string
 	Failures   []ServiceFailure
@@ -30,5 +32,5 @@ type ServiceFailure struct {
 }
 
 type Informer interface {
-	Inform(ctx context.Context, config Config, backend string, pingResult PingResult) error
+	Inform(ctx context.Context, config Config, backend string, pingResult PingResult, template *template.Template) error
 }

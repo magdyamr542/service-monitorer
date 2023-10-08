@@ -32,7 +32,7 @@ var (
 func main() {
 
 	configFile := flag.String("config", "config.yaml", "path to config file")
-	loglevel := flag.String("loglevel", "debug", "log level. one of (debug,info,error)")
+	loglevel := flag.String("loglevel", "info", "log level. one of (debug,info,error)")
 	flag.Parse()
 
 	logger := log.New(os.Stdout)
@@ -47,7 +47,7 @@ func main() {
 
 	yamlFile, err := os.ReadFile(*configFile)
 	if err != nil {
-		logger.Fatalf("Readfile: %v", err)
+		logger.Fatalf("can't read config file: %v", err)
 	}
 
 	var c config.Config
@@ -60,6 +60,13 @@ func main() {
 		logger.Fatalf("config invalid: %v", err)
 	}
 
+	templateMap, err := c.InitTemplateMap()
+	if err != nil {
+		logger.Fatalf("init template map: %v", err)
+	}
+
+	// fmt.Printf("%#+v\n", templateMap)
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	signalCh := make(chan os.Signal, 1)
@@ -71,6 +78,8 @@ func main() {
 	}()
 
 	httpClient := http.NewClient()
+
+	// Init informers.
 	informers := map[informer.SupportedInformer]informer.Informer{
 		informer.Slack: informer.NewSlack(logger, httpClient),
 	}
@@ -81,7 +90,7 @@ func main() {
 	}
 
 	// Start monitoring...
-	monitorer := monitorer.NewMonitorer(c, httpClient, informers, logger)
+	monitorer := monitorer.NewMonitorer(c, httpClient, informers, logger, templateMap)
 	if err := monitorer.Monitor(ctx); err != nil {
 		log.Fatalf("Monitorer: %v", err)
 	}

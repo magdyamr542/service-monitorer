@@ -4,29 +4,61 @@ informers:
   - name: slack-service-monitoring-errors
     type: slack
     config:
-      # Note: use a real slack webhook here (This is just a template)
-      webhookUrl: https://hooks.slack.com/services/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
+      # Note: use a real slack webhook url here (This is just a template)
+      webhookUrl: https://hooks.slack.com/services/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
 
 backends:
   # Can be started with 'Make backendMock'
   - name: invoice-manager-dev
     url: http://localhost:1234/healthy
-    callEachSec: 10
+    # Uncomment this to use basic auth.
+    #   auth:
+    #     #TODO: implement env vars in yaml.
+    #     username: $USERNAME
+    #     password: $PASSWORD
+    callEachSec: 5
     response:
       expectCode: 200
       onFail:
         inform:
           - informer: slack-service-monitoring-errors
-
-  # Using basic auth
-  # - name: invoice-manager-dev
-  #   url: http://localhost:1234/healthy
-  #   auth:
-  #     username: "user"
-  #     password: "password"
-  #   callEachSec: 5
-  #   response:
-  #     expectCode: 200
-  #     onFail:
-  #       inform:
-  #         - informer: slack-service-monitoring-errors
+            # The template should be written in go template syntax.
+            # Check https://pkg.go.dev/text/template#example-Template-Block
+            # The template is provided with the struct PingResult.
+            #
+            # type PingResult struct {
+            #     Backend    string
+            #     StatusCode int
+            #     Timestamp  string
+            #     Failures   []ServiceFailure
+            # }
+            #
+            # type ServiceFailure struct {
+            #   // Name of the service that failed. e.g 'invoice-manager'.
+            #   Name string
+            #   Reason string
+            #   Fatal  bool
+            # }
+            #
+            template: |
+              {
+                  "text": "Ping backend error. {{.Backend}}",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "Error with *{{.Backend}}*. (Time *{{.Timestamp}}*) (Status *{{.StatusCode}}*)"
+                      }
+                    },
+                    {{range .Failures}}
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "*{{ .Name }}*: \"{{ .Reason }}\" {{if .Fatal}}FATAL{{end}}"
+                      }
+                    },
+                    {{end}}
+                  ]
+              }

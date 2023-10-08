@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -19,15 +20,26 @@ type Monitorer interface {
 }
 
 type monitorer struct {
-	config     config.Config
-	logger     *log.Logger
-	httpClient http.Client
-	informers  map[informer.SupportedInformer]informer.Informer
+	config      config.Config
+	logger      *log.Logger
+	httpClient  http.Client
+	informers   map[informer.SupportedInformer]informer.Informer
+	templateMap config.TemplateMap
 }
 
-func NewMonitorer(config config.Config, httpClient http.Client,
-	informers map[informer.SupportedInformer]informer.Informer, logger *log.Logger) Monitorer {
-	m := monitorer{config: config, logger: logger, httpClient: httpClient, informers: informers}
+func NewMonitorer(
+	config config.Config,
+	httpClient http.Client,
+	informers map[informer.SupportedInformer]informer.Informer,
+	logger *log.Logger,
+	templateMap config.TemplateMap,
+) Monitorer {
+	m := monitorer{config: config,
+		logger:      logger,
+		httpClient:  httpClient,
+		informers:   informers,
+		templateMap: templateMap,
+	}
 	return &m
 }
 
@@ -65,7 +77,7 @@ func (m *monitorer) monitorBackend(ctx context.Context, backend config.Backend) 
 		case <-ticker.C:
 			result, err := m.pingBackend(ctx, backend)
 			if err != nil {
-				m.logger.With("err", err).Errorf("Can't ping backend %s.", backend.Name)
+				m.logger.With("err", err).Errorf("Can't ping backend %s", backend.Name)
 				continue
 			}
 
@@ -88,11 +100,11 @@ func (m *monitorer) informForBackend(ctx context.Context, backend config.Backend
 		}
 
 		informer := m.informers[informerConfig.Type]
-
-		if err := informer.Inform(ctx, informerConfig, backend.Name, pingResult); err != nil {
+		template := m.templateMap[config.TemplateName(backend.Name, i.Informer)]
+		if err := informer.Inform(ctx, informerConfig, backend.Name, pingResult, template); err != nil {
 			m.logger.With("err", err).
 				Warnf("Error informing %s. Will continue to inform any other possible informers...", informerConfig.Name)
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("error informing %s: %v", i.Informer, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -147,6 +159,7 @@ func (m *monitorer) pingBackend(ctx context.Context, backend config.Backend) (in
 	}
 
 	return informer.PingResult{
+		Backend:    backend.Name,
 		StatusCode: code,
 		Failures:   failures,
 		Timestamp:  backendResponse.Timestamp,
